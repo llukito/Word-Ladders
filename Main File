@@ -1,0 +1,138 @@
+/*
+ * File: WordLadder.cpp
+ * --------------------------
+ * Name: [TODO: enter name here]
+ * Section: [TODO: enter section leader here]
+ * This file is the starter project for the Word Ladder problem.
+ * [TODO: rewrite the documentation]
+ */
+
+#include <iostream>
+#include <algorithm>
+#include "console.h"
+#include "queue.h"
+#include "simpio.h"
+#include "vector"
+#include "lexicon.h"
+#include "set"
+using namespace std;
+
+const string FILENAME = "file.txt";
+
+void storeAllEnglishWords(Lexicon& words);
+string getUserInput(string);
+bool isValid(const string&);
+string findLadder(string&, string&, Lexicon&);
+string textToPrint(vector<string>& ladder);
+bool differsByOne(string& start, string& word);
+bool wordNotAlreadyUsed(set<string>& ladder, string& word);
+
+int main() {
+    Lexicon allEnglishWords;
+    storeAllEnglishWords(allEnglishWords);
+    while (true) {
+        string startWord = getUserInput("Enter start word (RETURN to quit) : ");
+        if (startWord.empty())break;
+        string endWord = getUserInput("Enter destination word: ");
+        cout << findLadder(startWord, endWord, allEnglishWords) << endl;
+    }
+    cout << "You exited Program" << endl;
+    return 0;
+}
+
+/*
+* Stores all words from file
+*/
+void storeAllEnglishWords(Lexicon& words) {
+    words.addWordsFromFile(FILENAME);
+}
+
+/*
+* Makes sure user inputs right string(only 26 letters)
+* And our program is not case sensitive so we always
+* turn it into lower case with transform function
+*/
+string getUserInput(string inputText) {
+    while (true) {
+        string text = getLine(inputText);
+        transform(text.begin(), text.end(), text.begin(), ::tolower);
+        if (isValid(text)) {
+            return text;
+        }
+        cout << "Enter valid word" << endl;
+    }
+}
+
+/*
+* Checks if string is valid, we pass it with reference
+* to take care of memory but also make it static to prevent
+* its modification
+*/
+bool isValid(const string& text) {
+    for (char ch : text) {
+        if (!isalpha(ch)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/*
+* Main part of the program, which decides if start word can
+* become endWord after proper modifications
+*/
+string findLadder(string& startWord, string& endWord, Lexicon& allEnglishWords) {
+    Queue<vector<string>> allLadders;
+    allLadders.enqueue(vector<string>({ startWord }));
+    set<string> visitedWords;
+    visitedWords.insert(startWord);
+    while (!allLadders.isEmpty()) {
+        vector<string> currentLadder = allLadders.dequeue();
+        string lastElement = currentLadder[currentLadder.size() - 1];
+        if (lastElement == endWord) {
+            return textToPrint(currentLadder);
+        }
+        for (string word : allEnglishWords) {
+            if (differsByOne(lastElement, word) && wordNotAlreadyUsed(visitedWords, word)) {
+                vector<string> newLadder = currentLadder;
+                newLadder.push_back(word);
+                allLadders.enqueue(newLadder);
+                visitedWords.insert(word);
+            }
+        }
+    }
+    return "No ladder found.";
+}
+
+string textToPrint(vector<string>& ladder) {
+    string text = "Found ladder: ";
+    for (string str : ladder) {
+        text += str + " ";
+    }
+    return text;
+}
+
+/*
+* word to be added in vector needs to differ with only
+* one char from last word of current vector. First
+* they have to have same size, then main logic follows
+*/
+bool differsByOne(string& start, string& word) {
+    if (start.length() != word.length())return false;
+    int differentChars = 0;
+    for (int i = 0; i < start.length(); i++) {
+        if (start[i] != word[i]) {
+            differentChars++;
+            if (differentChars > 1) return false; // earle exit for efficiency
+        }
+    }
+    return differentChars == 1;
+}
+
+/*
+* Our program not to cycle and to function properly
+* we need to check if word was not alredy used in vector
+*/
+bool wordNotAlreadyUsed(set<string>& visitedWords, string& word) {
+    return visitedWords.find(word) == visitedWords.end();
+}
