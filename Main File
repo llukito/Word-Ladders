@@ -17,19 +17,20 @@
 #include "set"
 using namespace std;
 
-const string FILENAME = "file.txt";
+//constant
+const string FILENAME = "EnglishWords.dat";
 
-void storeAllEnglishWords(Lexicon& words);
+//function prototypes
 string getUserInput(string);
 bool isValid(const string&);
 string findLadder(string&, string&, Lexicon&);
+void enqueueAllContinues(string& lastElement, Lexicon& allEnglishWords, set<string>& visitedWords,
+    vector<string>& currentLadder, Queue<vector<string>>& allLadders);
 string textToPrint(vector<string>& ladder);
-bool differsByOne(string& start, string& word);
 bool wordNotAlreadyUsed(set<string>& ladder, string& word);
 
 int main() {
-    Lexicon allEnglishWords;
-    storeAllEnglishWords(allEnglishWords);
+    Lexicon allEnglishWords(FILENAME);
     while (true) {
         string startWord = getUserInput("Enter start word (RETURN to quit) : ");
         if (startWord.empty())break;
@@ -38,13 +39,6 @@ int main() {
     }
     cout << "You exited Program" << endl;
     return 0;
-}
-
-/*
-* Stores all words from file
-*/
-void storeAllEnglishWords(Lexicon& words) {
-    words.addWordsFromFile(FILENAME);
 }
 
 /*
@@ -83,23 +77,17 @@ bool isValid(const string& text) {
 */
 string findLadder(string& startWord, string& endWord, Lexicon& allEnglishWords) {
     Queue<vector<string>> allLadders;
-    allLadders.enqueue(vector<string>({ startWord }));
-    set<string> visitedWords;
-    visitedWords.insert(startWord);
+    allLadders.enqueue(vector<string>({ startWord })); // we add first element(vector with only startword)
+    set<string> visitedWords; // we will use set to make our code faster by avoiding dublicates
+    visitedWords.insert(startWord); //we add first element(startword)
     while (!allLadders.isEmpty()) {
         vector<string> currentLadder = allLadders.dequeue();
         string lastElement = currentLadder[currentLadder.size() - 1];
         if (lastElement == endWord) {
             return textToPrint(currentLadder);
         }
-        for (string word : allEnglishWords) {
-            if (differsByOne(lastElement, word) && wordNotAlreadyUsed(visitedWords, word)) {
-                vector<string> newLadder = currentLadder;
-                newLadder.push_back(word);
-                allLadders.enqueue(newLadder);
-                visitedWords.insert(word);
-            }
-        }
+        enqueueAllContinues(lastElement, allEnglishWords, visitedWords, currentLadder, allLadders);
+
     }
     return "No ladder found.";
 }
@@ -113,20 +101,25 @@ string textToPrint(vector<string>& ladder) {
 }
 
 /*
-* word to be added in vector needs to differ with only
-* one char from last word of current vector. First
-* they have to have same size, then main logic follows
+* This function generates all kinds of strings which differ by one,
+* so we make change for every char in string respectively with 26
+* different variants. We add it in queue if word is valid english word
 */
-bool differsByOne(string& start, string& word) {
-    if (start.length() != word.length())return false;
-    int differentChars = 0;
-    for (int i = 0; i < start.length(); i++) {
-        if (start[i] != word[i]) {
-            differentChars++;
-            if (differentChars > 1) return false; // earle exit for efficiency
+void enqueueAllContinues(string& lastElement, Lexicon& allEnglishWords, set<string>& visitedWords,
+    vector<string>& currentLadder, Queue<vector<string>>& allLadders) {
+    for (int i = 0; i < lastElement.length(); i++) {
+        string nextWord = lastElement;
+        for (char ch = 'a'; ch <= 'z'; ch++) {
+            nextWord[i] = ch;
+            if (allEnglishWords.contains(nextWord) &&
+                wordNotAlreadyUsed(visitedWords, nextWord)) {
+                vector<string> newLadder = currentLadder;
+                newLadder.push_back(nextWord);
+                allLadders.enqueue(newLadder);
+                visitedWords.insert(nextWord);
+            }
         }
     }
-    return differentChars == 1;
 }
 
 /*
